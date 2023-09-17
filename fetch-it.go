@@ -23,7 +23,7 @@ var validCredentials = make(map[string]struct {
 })
 
 func main() {
-	cfg := getConfig("./")
+	cfg = getConfig("./")
 	// Try to read credentials from different locations
 	wd, _ := os.Getwd()
 	locations := []string{
