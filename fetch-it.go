@@ -39,7 +39,7 @@ func main() {
 	var credentialFile string
 
 	for _, location := range locations {
-		println("checking", location, "for credentials")
+		//println("checking", location, "for credentials")
 		if _, err := os.Stat(location); err == nil {
 			credentialFile = location
 			break

@@ -90,21 +90,21 @@ func getConfigFilePath() (string, error) {
 
 	// println(exePath, exeDir, exeName)
 	fName = concatFileNames("/etc/websites/"+exeName, defaultFileName)
-	println("hopeful to find config file in:", *fName)
+	//println("hopeful to find config file in:", *fName)
 	if fileIsReadable(fName) {
-		println(*fName)
+		//println(*fName)
 		return *fName, nil
 	}
 
 	fName = concatFileNames(exeDir, defaultFileName)
 	if fileIsReadable(fName) {
-		println(*fName)
+		//println(*fName)
 		return *fName, nil
 	}
 
 	fName = concatFileNames(exeDir, exeName+".ini")
 	if fileIsReadable(fName) {
-		println(*fName)
+		//println(*fName)
 		return *fName, nil
 	}
 	println("config file not found")
