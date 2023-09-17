@@ -82,11 +82,15 @@ func getConfigFilePath() (string, error) {
 	}
 
 	exeName := *stripExtension(filepath.Base(exePath))
+	if exeName == "" {
+		println("Exe path is", exePath, "and exeName is", exeName, "!")
+	}
 	// Get the directory of the executable file
 	exeDir := filepath.Dir(exePath)
 
 	// println(exePath, exeDir, exeName)
-	fName = concatFileNames("/etc/"+exeName, defaultFileName)
+	fName = concatFileNames("/etc/websites/"+exeName, defaultFileName)
+	println("hopeful to find config file in:", *fName)
 	if fileIsReadable(fName) {
 		println(*fName)
 		return *fName, nil
