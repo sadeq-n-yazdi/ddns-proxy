@@ -26,8 +26,12 @@ func main() {
 	cfg = getConfig("./")
 	// Try to read credentials from different locations
 	wd, _ := os.Getwd()
+	if strings.Trim(wd, "/") == "" {
+		wd = "."
+	}
 	locations := []string{
-		"/etc/fetch-it/cred.jsonc",                    // First, check in /etc/fetch-it/
+		"/etc/websites/fetchit.sadeq.uk/cred.jsonc",   // First, check in /etc/websites/fetch-it.sadeq.uk/
+		"/etc/fetchit/cred.jsonc",                     // First, check in /etc/fetch-it/
 		filepath.Join(wd, ".cred.jsonc"),              // Then, check in the current working directory
 		filepath.Join(executableDir(), ".cred.jsonc"), // Then, check beside the executable
 	}
@@ -35,9 +39,12 @@ func main() {
 	var credentialFile string
 
 	for _, location := range locations {
+		println("checking", location, "for credentials")
 		if _, err := os.Stat(location); err == nil {
 			credentialFile = location
 			break
+		} else {
+			println(err.Error())
 		}
 	}
 
