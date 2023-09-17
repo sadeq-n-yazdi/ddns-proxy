@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/tidwall/gjson"
@@ -22,6 +23,7 @@ var validCredentials = make(map[string]struct {
 })
 
 func main() {
+	cfg := getConfig("./")
 	// Try to read credentials from different locations
 	wd, _ := os.Getwd()
 	locations := []string{
@@ -115,7 +117,7 @@ func main() {
 
 	// Start the HTTP server on port 9002
 	// Start the HTTP server on port 9002
-	port := ":9002"
+	port := cfg.HostName + ":" + strconv.Itoa(cfg.Port)
 	fmt.Printf("Starting server on port %s...\n", port)
 	err := http.ListenAndServe(port, nil)
 	if err != nil {
@@ -127,7 +129,7 @@ func main() {
 func executableDir() string {
 	executable, err := os.Executable()
 	if err != nil {
-		panic(err)
+		return ""
 	}
 	return filepath.Dir(executable)
 }
