@@ -28,7 +28,7 @@ const (
 
 func getConfig(path string) *ServerConfig {
 	var configFileName string
-	sectionName := ini.DEFAULT_SECTION
+	sectionName := ini.DefaultSection
 
 	// Define default config values
 	defaultConfig :=
