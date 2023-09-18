@@ -18,12 +18,15 @@ import (
 
 // UserInfo Define a custom struct type with JSON tags and default values
 type UserInfo struct {
-	Password string `json:"password,omitempty,default:'<PASSWORD>'"`
-	UserID   string `json:"id,omitempty,default:'demo'"`
-	Host     string `json:"host,omitempty,default:'example.com'"`
-	DDUser   string `json:"dd-user,omitempty,default:'demo'"`
-	DDPass   string `json:"dd-pass,omitempty,default:''"`
+	Password   string `json:"password,omitempty,default:'<PASSWORD>'"`
+	UserID     string `json:"id,omitempty,default:'demo'"`
+	Host       string `json:"host,omitempty,default:'example.com'"`
+	DDUser     string `json:"dd-user,omitempty,default:'demo'"`
+	DDPass     string `json:"dd-pass,omitempty,default:''"`
+	urlPattern string `json:"url-pattern,omitempty,default:''"`
 }
+
+const defaultURLPattern = "https://%s:%s@domains.google.com/nic/update?hostname=%s&myip=%s"
 
 // Define a map to store user credentials
 var validCredentials = make(map[string]UserInfo)
@@ -230,8 +233,12 @@ func fetchItHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	url := ""
 	getLogger().Debug("requestedIpAddress:", requestedIpAddress)
 	if checkValidAPICredentials(creds) && requestedIpAddress != "" {
+		pattern := defaultURLPattern
+		if creds.urlPattern == "" {
+			pattern = creds.urlPattern
+		}
 		url = fmt.Sprintf(
-			"https://%s:%s@domains.google.com/nic/update?hostname=%s&myip=%s",
+			pattern,
 			creds.DDUser,
 			creds.DDPass,
 			creds.Host,
