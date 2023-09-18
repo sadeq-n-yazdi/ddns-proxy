@@ -19,7 +19,7 @@ import (
 // UserInfo Define a custom struct type with JSON tags and default values
 type UserInfo struct {
 	Password string `json:"password,omitempty,default:'<PASSWORD>'"`
-	UserID   string `json:"user,omitempty,default:'demo'"`
+	UserID   string `json:"id,omitempty,default:'demo'"`
 	Host     string `json:"host,omitempty,default:'example.com'"`
 	DDUser   string `json:"dd-user,omitempty,default:'demo'"`
 	DDPass   string `json:"dd-pass,omitempty,default:''"`
@@ -143,10 +143,14 @@ func readCredentialsFromFile(filename string) error {
 func checkValidAPICredentials(user *UserInfo) bool {
 	userExists := strings.TrimSpace(user.DDUser) != ""
 	passExists := strings.TrimSpace(user.DDPass) != ""
+	getLogger().Debug("User exists:", userExists, []string{user.DDUser})
+	getLogger().Debug("Pass exists:", passExists, []string{user.DDPass})
+
 	return userExists && passExists
 }
 
 func authorize(w http.ResponseWriter, r *http.Request) (creds *UserInfo, ok bool) {
+	creds = &UserInfo{}
 	//Get the Authorization header from the request
 	authHeader := r.Header.Get("Authorization")
 
@@ -204,6 +208,7 @@ func getRealIP(r *http.Request) string {
 	if ip == "" {
 		ip = r.RemoteAddr
 	}
+	ip = strings.SplitN(ip, ":", 2)[0]
 	return ip
 }
 func fetchItHandlerFunc(w http.ResponseWriter, r *http.Request) {
@@ -223,6 +228,7 @@ func fetchItHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	}
 
 	url := ""
+	getLogger().Debug("requestedIpAddress:", requestedIpAddress)
 	if checkValidAPICredentials(creds) && requestedIpAddress != "" {
 		url = fmt.Sprintf(
 			"https://%s:%s@domains.google.com/nic/update?hostname=%s&myip=%s",
