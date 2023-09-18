@@ -3,32 +3,57 @@ package main
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/sirupsen/logrus"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )
 
-// Define a map to store user credentials
-var validCredentials = make(map[string]struct {
+// UserInfo Define a custom struct type with JSON tags and default values
+type UserInfo struct {
 	Password string `json:"password,omitempty,default:'<PASSWORD>'"`
 	UserID   string `json:"user,omitempty,default:'demo'"`
 	Host     string `json:"host,omitempty,default:'example.com'"`
 	DDUser   string `json:"dd-user,omitempty,default:'demo'"`
 	DDPass   string `json:"dd-pass,omitempty,default:''"`
-})
+}
+
+// Define a map to store user credentials
+var validCredentials = make(map[string]UserInfo)
 
 func main() {
 	cfg = getConfig("./")
+	if cfg.Debug {
+		getLogger().SetLevel(logrus.DebugLevel)
+	}
+
+	if err := setupCredentialsFromFile(); err != nil {
+		getLogger().WithError(err).Fatal("Failed to setup credentials from file")
+	}
+
+	http.HandleFunc("/", fetchItHandlerFunc)
+
+	// Start the HTTP server
+	port := cfg.HostName + ":" + strconv.Itoa(cfg.Port)
+	getLogger().Infof("Starting server on port %s...\n", port)
+	err := http.ListenAndServe(port, nil)
+	if err != nil {
+		getLogger().Error("Error starting server:", err)
+	}
+}
+
+func setupCredentialsFromFile() error {
 	// Try to read credentials from different locations
 	wd, _ := os.Getwd()
-	if strings.Trim(wd, "/") == "" {
-		wd = "."
-	}
+	wd, _ = filepath.Abs(wd)
+
 	locations := []string{
 		"/etc/websites/fetchit.sadeq.uk/cred.jsonc",   // First, check in /etc/websites/fetch-it.sadeq.uk/
 		"/etc/fetchit/cred.jsonc",                     // First, check in /etc/fetch-it/
@@ -39,97 +64,25 @@ func main() {
 	var credentialFile string
 
 	for _, location := range locations {
-		//println("checking", location, "for credentials")
+		getLogger().Debug("checking credential file at: ", location)
 		if _, err := os.Stat(location); err == nil {
 			credentialFile = location
 			break
-		} else {
-			println(err.Error())
 		}
 	}
 
 	// Check if a credential file was found
 	if credentialFile == "" {
-		fmt.Println("Credential file not found in expected locations.")
-		return
+		getLogger().Error("credential file not found in expected locations.")
+		return fmt.Errorf("credential file not found in expected locations")
 	}
 
 	// Read credentials from the JSONC file
 	if err := readCredentialsFromFile(credentialFile); err != nil {
-		fmt.Println("Error reading credentials:", err)
-		return
+		getLogger().Error("error reading credentials:", err)
+		return fmt.Errorf("error reading credentials: %s", err)
 	}
-
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { // Get the Authorization header from the request
-		authHeader := r.Header.Get("Authorization")
-
-		// Check if the Authorization header is not empty and starts with "Basic "
-		if authHeader != "" && strings.HasPrefix(authHeader, "Basic ") {
-			// Extract the base64-encoded credentials (after "Basic ")
-			authValue := authHeader[len("Basic "):]
-
-			// Decode the base64-encoded credentials
-			credentials, err := base64.StdEncoding.DecodeString(authValue)
-			if err != nil {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
-
-			// Split the decoded credentials into username and password
-			parts := strings.SplitN(string(credentials), ":", 2)
-			if len(parts) != 2 {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
-
-			// Extract the username and password
-			username := parts[0]
-			password := parts[1]
-
-			// Check if the provided credentials are valid
-			creds, exists := validCredentials[username]
-			if !exists || password != creds.Password {
-				http.Error(w, "Forbidden", http.StatusForbidden)
-				return
-			}
-
-			requestedIpAddress := r.URL.Query().Get("ip")
-			if requestedIpAddress == "" {
-				requestedIpAddress = r.RemoteAddr
-			}
-			if r.Header.Get("X-Forwarded-For") != "" {
-				requestedIpAddress = r.Header.Get("X-Forwarded-For")
-			}
-			if r.Header.Get("X-Real-Ip") != "" {
-				requestedIpAddress = r.Header.Get("X-Real-Ip")
-			}
-			// Authentication passed, respond with "OK" and include additional fields
-			//response := fmt.Sprintf("OK, User ID: %s, Host: %s, DDUser: %s, DDPass: %s\n",
-			//	creds.UserID, creds.Host, creds.DDUser, creds.DDPass)
-			//fmt.Fprintln(w, response)
-			response := fmt.Sprintf(
-				"https://%s:%s@domains.google.com/nic/update?hostname=%s&myip=%s",
-				creds.DDUser,
-				creds.DDPass,
-				creds.Host,
-				requestedIpAddress,
-			)
-			w.Header().Add("Content-Type", "text/plain; charset=utf-8")
-			_, _ = fmt.Fprintln(w, response)
-		} else {
-			// Authorization header is missing or not in the correct format
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		}
-	})
-
-	// Start the HTTP server on port 9002
-	// Start the HTTP server on port 9002
-	port := cfg.HostName + ":" + strconv.Itoa(cfg.Port)
-	fmt.Printf("Starting server on port %s...\n", port)
-	err := http.ListenAndServe(port, nil)
-	if err != nil {
-		fmt.Println("Server error:", err)
-	}
+	return nil
 }
 
 // Get the directory of the currently executing executable
@@ -138,6 +91,8 @@ func executableDir() string {
 	if err != nil {
 		return ""
 	}
+	getLogger().Debug("Executable file:", executable)
+	getLogger().Debug("Executable path:", filepath.Dir(executable))
 	return filepath.Dir(executable)
 }
 
@@ -145,6 +100,7 @@ func executableDir() string {
 func readCredentialsFromFile(filename string) error {
 	data, err := os.ReadFile(filename)
 	if err != nil {
+		getLogger().Error("Can not read credential file:", err)
 		return err
 	}
 
@@ -158,14 +114,7 @@ func readCredentialsFromFile(filename string) error {
 		username := key.String()
 
 		// Use default values from struct tags
-		creds := struct {
-			Password string `json:"password,omitempty,default:'<PASSWORD>'"`
-			UserID   string `json:"user,omitempty,default:'demo'"`
-			Host     string `json:"host,omitempty,default:'example.com'"`
-			DDUser   string `json:"dd-user,omitempty,default:'demo'"`
-			DDPass   string `json:"dd-pass,omitempty,default:''"`
-		}{}
-
+		creds := UserInfo{}
 		// Unmarshal JSON data into the creds struct
 		value.ForEach(func(key, val gjson.Result) bool {
 			field := key.String()
@@ -189,4 +138,140 @@ func readCredentialsFromFile(filename string) error {
 	})
 
 	return nil
+}
+
+func checkValidAPICredentials(user *UserInfo) bool {
+	userExists := strings.TrimSpace(user.DDUser) != ""
+	passExists := strings.TrimSpace(user.DDPass) != ""
+	return userExists && passExists
+}
+
+func authorize(w http.ResponseWriter, r *http.Request) (creds *UserInfo, ok bool) {
+	//Get the Authorization header from the request
+	authHeader := r.Header.Get("Authorization")
+
+	// Check if the Authorization header is not empty and starts with "Basic "
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Basic ") {
+		// Authorization header is missing or not in the correct format
+		getLogger().Info("Unknown authorized request")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return nil, false
+	}
+
+	// Extract the base64-encoded credentials (after "Basic ")
+	authValue := authHeader[len("Basic "):]
+
+	// Decode the base64-encoded credentials
+	credentials, err := base64.StdEncoding.DecodeString(authValue)
+	if err != nil {
+		getLogger().Warn("Bad encoding for credentials")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return nil, false
+	}
+
+	// Split the decoded credentials into a username and password
+	parts := strings.SplitN(string(credentials), ":", 2)
+	if len(parts) != 2 {
+		getLogger().Warn("Empty credentials")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return nil, false
+	}
+
+	// Extract the username and password
+	username := parts[0]
+	password := parts[1]
+
+	getLogger().Debug("Header: username:", username, " password:", password)
+
+	// Check if the provided credentials are valid
+	var exists bool
+	*creds, exists = validCredentials[username]
+	if !exists || password != creds.Password {
+		if !exists {
+			getLogger().Warn("Creds: username:", username, "not found!")
+		}
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return nil, false
+	}
+	return creds, true
+}
+
+func getRealIP(r *http.Request) string {
+	ip := r.Header.Get("X-Real-IP")
+	if ip == "" {
+		ip = r.Header.Get("X-Forwarded-For")
+	}
+	if ip == "" {
+		ip = r.RemoteAddr
+	}
+	return ip
+}
+func fetchItHandlerFunc(w http.ResponseWriter, r *http.Request) {
+	creds, valid := authorize(w, r)
+	if !valid {
+		// if auth fail not handled in authorize func
+		getLogger().Debug("auth failed")
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte("Authorization failed"))
+		return
+	}
+
+	requestedIpAddress := r.URL.Query().Get("ip")
+	if requestedIpAddress == "" {
+		requestedIpAddress = getRealIP(r)
+	}
+
+	url := ""
+	if checkValidAPICredentials(creds) && requestedIpAddress != "" {
+		url = fmt.Sprintf(
+			"https://%s:%s@domains.google.com/nic/update?hostname=%s&myip=%s",
+			creds.DDUser,
+			creds.DDPass,
+			creds.Host,
+			requestedIpAddress,
+		)
+		getLogger().Debugf("%v", []string{"URL", url})
+
+		if cfg.Debug {
+			time.Sleep(10 * time.Second)
+		}
+		// Create an HTTP client with a timeout of 5 seconds
+		client := &http.Client{
+			Timeout: 5 * time.Second,
+		}
+
+		// Send an HTTP GET request using the client
+		resp, err := client.Get(url)
+		if err != nil {
+			getLogger().Warn("Error making GET request:", err)
+			return
+		}
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(resp.Body)
+
+		// Read the response body
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			getLogger().Warn("Error reading response body", err)
+			return
+		}
+
+		getLogger().Debug("Body: ", body)
+		getLogger().Debug("Header: ", resp.Header)
+		// Check if the response body contains "ok"
+		if strings.Contains(string(body), "ok") {
+			getLogger().Info("Response contains 'ok'")
+		} else {
+			getLogger().Info("Response does not contain 'ok'")
+		}
+
+	} else {
+		getLogger().Warn("Credentials are not valid, ", creds)
+	}
+	response := url
+	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
+	_, _ = fmt.Fprintln(w, response)
+
 }

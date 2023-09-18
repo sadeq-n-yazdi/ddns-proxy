@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/go-ini/ini"
+	"github.com/sirupsen/logrus"
 	"os"
+	"path"
 	"path/filepath"
 )
 
@@ -22,11 +24,12 @@ var cfg *ServerConfig
 
 const (
 	defaultFileName = "config.ini"
-	sectionName     = "server"
 )
 
 func getConfig(path string) *ServerConfig {
 	var configFileName string
+	sectionName := ini.DEFAULT_SECTION
+
 	// Define default config values
 	defaultConfig :=
 		ServerConfig{
@@ -46,7 +49,7 @@ func getConfig(path string) *ServerConfig {
 		}
 		configFileName = cfgFileName
 	}
-	println("config file: ", configFileName)
+	getLogger().Info("config file: ", configFileName)
 	settings, err := ini.Load(configFileName)
 	if err != nil {
 		return &defaultConfig
@@ -54,6 +57,10 @@ func getConfig(path string) *ServerConfig {
 
 	if debug, err := settings.Section(sectionName).Key("debug").Bool(); err == nil {
 		defaultConfig.Debug = debug
+		if debug {
+			getLogger().SetLevel(logrus.DebugLevel)
+			getLogger().Debug("Debug mode enabled")
+		}
 	}
 	defaultConfig.HostName = settings.Section(sectionName).Key("host").String()
 
@@ -74,41 +81,41 @@ func getConfig(path string) *ServerConfig {
 }
 
 func getConfigFilePath() (string, error) {
-	var fName *string
+	var (
+		exeName         string
+		exeDir          string
+		configFilePaths []string
+	)
+
 	// Get the path of the executable file
 	exePath, err := os.Executable()
-	if err != nil {
-		panic(err)
+	if err == nil {
+		exeName = *stripExtension(filepath.Base(exePath))
+		if exeName == "" {
+			getLogger().Debug("Exe path is", exePath, "and exeName is", exeName, "!")
+		}
+		// Get the directory of the executable file
+		exeDir = filepath.Dir(exePath)
 	}
 
-	exeName := *stripExtension(filepath.Base(exePath))
-	if exeName == "" {
-		println("Exe path is", exePath, "and exeName is", exeName, "!")
+	configFilePaths = append(configFilePaths, path.Join("/etc", "websites", exeName, defaultFileName))
+	configFilePaths = append(configFilePaths, path.Join(exeDir, defaultFileName))
+	wd, err := os.Getwd()
+	if err == nil && wd != exeDir {
+		configFilePaths = append(configFilePaths, path.Join(wd, defaultFileName))
+		configFilePaths = append(configFilePaths, path.Join(wd, exeName+".ini"))
 	}
-	// Get the directory of the executable file
-	exeDir := filepath.Dir(exePath)
+	configFilePaths = append(configFilePaths, path.Join(exeDir, exeName+".ini"))
+	configFilePaths = append(configFilePaths, path.Join("/etc", "websites", "fetchit.sadeq.uk", defaultFileName))
 
-	// println(exePath, exeDir, exeName)
-	fName = concatFileNames("/etc/websites/"+exeName, defaultFileName)
-	//println("hopeful to find config file in:", *fName)
-	if fileIsReadable(fName) {
-		//println(*fName)
-		return *fName, nil
+	for _, fn := range configFilePaths {
+		if fileIsReadable(&fn) {
+			getLogger().Debug("Config file found at", fn)
+			return fn, nil
+		}
 	}
-
-	fName = concatFileNames(exeDir, defaultFileName)
-	if fileIsReadable(fName) {
-		//println(*fName)
-		return *fName, nil
-	}
-
-	fName = concatFileNames(exeDir, exeName+".ini")
-	if fileIsReadable(fName) {
-		//println(*fName)
-		return *fName, nil
-	}
-	println("config file not found")
-	return "", fmt.Errorf("could not find config file")
+	getLogger().Error("config file not found!")
+	return "", fmt.Errorf("no config file found")
 }
 
 func fileIsReadable(filename *string) bool {
@@ -135,9 +142,4 @@ func stripExtension(filename string) *string {
 	ext := filepath.Ext(filename)
 	filename = filename[0 : len(filename)-len(ext)]
 	return &filename
-}
-
-func concatFileNames(path string, filename string) *string {
-	fullFileName := path + "/" + filename
-	return &fullFileName
 }
