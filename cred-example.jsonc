@@ -1,0 +1,20 @@
+{
+    // User 1
+    "username1": {
+        "password": "password1",
+        "id": "user123",
+        "host": "example.com",
+        "dd-user": "dduser1",
+        "dd-pass": "ddpass1"
+    },
+
+    // User 2
+    "username2": {
+        "password": "password2",
+        "id": "user456",
+        "host": "w2.example.org",
+        "dd-user": "dduser2",
+        "dd-pass": "ddpass2"
+    }
+}
+
