@@ -23,7 +23,7 @@ type UserInfo struct {
 	Host       string `json:"host,omitempty,default:'example.com'"`
 	DDUser     string `json:"dd-user,omitempty,default:'demo'"`
 	DDPass     string `json:"dd-pass,omitempty,default:''"`
-	urlPattern string `json:"url-pattern,omitempty,default:''"`
+	UrlPattern string `json:"url-pattern,omitempty,default:''"`
 }
 
 const defaultURLPattern = "https://%s:%s@domains.google.com/nic/update?hostname=%s&myip=%s"
@@ -234,8 +234,8 @@ func fetchItHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	getLogger().Debug("requestedIpAddress:", requestedIpAddress)
 	if checkValidAPICredentials(creds) && requestedIpAddress != "" {
 		pattern := defaultURLPattern
-		if creds.urlPattern == "" {
-			pattern = creds.urlPattern
+		if creds.UrlPattern == "" {
+			pattern = creds.UrlPattern
 		}
 		url = fmt.Sprintf(
 			pattern,
