@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -23,10 +24,10 @@ type UserInfo struct {
 	Host       string `json:"host,omitempty,default:'example.com'"`
 	DDUser     string `json:"dd-user,omitempty,default:'demo'"`
 	DDPass     string `json:"dd-pass,omitempty,default:''"`
-	UrlPattern string `json:"url-pattern,omitempty,default:''"`
+	UrlPattern string `json:"url,omitempty,default:''"`
 }
 
-const defaultURLPattern = "https://%s:%s@domains.google.com/nic/update?hostname=%s&myip=%s"
+const defaultURLPattern = "https://{dduser}:{ddpass}@domains.google.com/nic/update?hostname={ddhost}&myip={ddip}"
 
 // Define a map to store user credentials
 var validCredentials = make(map[string]UserInfo)
@@ -230,21 +231,22 @@ func fetchItHandlerFunc(w http.ResponseWriter, r *http.Request) {
 		requestedIpAddress = getRealIP(r)
 	}
 
-	url := ""
+	theUrl := ""
 	getLogger().Debug("requestedIpAddress:", requestedIpAddress)
+	pattern := defaultURLPattern
 	if checkValidAPICredentials(creds) && requestedIpAddress != "" {
-		pattern := defaultURLPattern
-		if creds.UrlPattern == "" {
+		if creds.UrlPattern != "" {
 			pattern = creds.UrlPattern
 		}
-		url = fmt.Sprintf(
-			pattern,
-			creds.DDUser,
-			creds.DDPass,
-			creds.Host,
-			requestedIpAddress,
-		)
-		getLogger().Debugf("%v", []string{"URL", url})
+
+		theUrl = Interpolate(pattern, map[string]interface{}{
+			"ddhost": url.QueryEscape(creds.Host),
+			"dduser": url.QueryEscape(creds.DDUser),
+			"ddpass": url.QueryEscape(creds.DDPass),
+			"ddip":   url.QueryEscape(requestedIpAddress),
+		})
+
+		getLogger().Debugf("%v", []string{"URL", theUrl})
 
 		if cfg.Debug {
 			time.Sleep(10 * time.Second)
@@ -254,10 +256,14 @@ func fetchItHandlerFunc(w http.ResponseWriter, r *http.Request) {
 			Timeout: 5 * time.Second,
 		}
 
+		paramsMap, err := GetParamsAsMap(r)
+		theUrl = Interpolate(theUrl, *paramsMap)
 		// Send an HTTP GET request using the client
-		resp, err := client.Get(url)
+		getLogger().Debugf("Compiled URL using parameters: %v", []string{"URL", theUrl})
+		resp, err := client.Get(theUrl)
 		if err != nil {
 			getLogger().Warn("Error making GET request:", err)
+			http.Error(w, "Error making GET request", http.StatusBadRequest)
 			return
 		}
 		defer func(Body io.ReadCloser) {
@@ -268,23 +274,26 @@ func fetchItHandlerFunc(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			getLogger().Warn("Error reading response body", err)
+			http.Error(w, "Error reading response body", http.StatusBadGateway)
 			return
 		}
 
-		getLogger().Debug("Body: ", body)
+		getLogger().Debug("Body: ", string(body))
 		getLogger().Debug("Header: ", resp.Header)
 		// Check if the response body contains "ok"
-		if strings.Contains(string(body), "ok") {
-			getLogger().Info("Response contains 'ok'")
+
+		if resp.StatusCode == http.StatusOK {
+			getLogger().Infof("Respons: %d\n%s", resp.StatusCode, body)
+			_, _ = fmt.Fprintf(w, "OK %d\n%s", resp.StatusCode, body)
 		} else {
-			getLogger().Info("Response does not contain 'ok'")
+			getLogger().Warnf("Respons: %d\n%s", resp.StatusCode, body)
+			_, _ = fmt.Fprintf(w, "Fail: %d\n%s", resp.StatusCode, body)
 		}
 
 	} else {
 		getLogger().Warn("Credentials are not valid, ", creds)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 	}
-	response := url
-	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
-	_, _ = fmt.Fprintln(w, response)
 
+	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 }
