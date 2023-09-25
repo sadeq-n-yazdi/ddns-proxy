@@ -27,14 +27,15 @@ Step-by-step guide to deploy the service:
 ## TODO
 
 This functionality will be added in the future:
-1. Support listen to secure port
-2. Add test codes 
-3. Support generate and use certificate using Let's Encrypt services
-4. add support for:
+1. Do not try to update if the IP is correct yet.
+2. Support listen to secure port
+3. Add test codes 
+4. Support generate and use certificate using Let's Encrypt services
+5. add support for:
     - no-ip.com
     - dyndns.org
     - ...
-5. write a man file
+6. write a man file
 
 # Author
 
