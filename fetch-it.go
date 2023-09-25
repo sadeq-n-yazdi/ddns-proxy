@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -20,12 +21,13 @@ import (
 
 // UserInfo Define a custom struct type with JSON tags and default values
 type UserInfo struct {
-	Password   string `json:"password,omitempty,default:'<PASSWORD>'"`
-	UserID     string `json:"id,omitempty,default:'demo'"`
-	Host       string `json:"host,omitempty,default:'example.com'"`
-	DDUser     string `json:"dd-user,omitempty,default:'demo'"`
-	DDPass     string `json:"dd-pass,omitempty,default:''"`
-	UrlPattern string `json:"url,omitempty,default:''"`
+	Password    string `json:"password,omitempty,default:'<PASSWORD>'"`
+	UserID      string `json:"id,omitempty,default:'demo'"`
+	Host        string `json:"host,omitempty,default:'example.com'"`
+	DDUser      string `json:"dd-user,omitempty,default:'demo'"`
+	DDPass      string `json:"dd-pass,omitempty,default:''"`
+	UrlPattern  string `json:"url,omitempty,default:''"`
+	ForceUpdate bool   `json:"force-update,omitempty,default:false"`
 }
 
 const defaultURLPattern = "https://{dduser}:{ddpass}@domains.google.com/nic/update?hostname={ddhost}&myip={ddip}"
@@ -141,6 +143,9 @@ func readCredentialsFromFile(filename string) error {
 				creds.DDUser = val.String()
 			} else if field == "dd-pass" {
 				creds.DDPass = val.String()
+			} else if field == "force-update" {
+				forceUpdate, _ := strconv.ParseBool(val.String())
+				creds.ForceUpdate = forceUpdate
 			}
 			return true
 		})
@@ -254,6 +259,19 @@ func fetchItHandlerFunc(w http.ResponseWriter, r *http.Request) {
 			"ddpass": url.QueryEscape(creds.DDPass),
 			"ddip":   url.QueryEscape(requestedIpAddress),
 		})
+
+		if !creds.ForceUpdate {
+			ips, err := net.LookupIP(creds.Host)
+			if err == nil && len(ips) > 0 {
+				if ips[0].String() == requestedIpAddress {
+					getLogger().Info("IP %s already is set for %s", requestedIpAddress, creds.Host)
+					w.Header().Set("Content-Type", "text/plain")
+					_, _ = w.Write([]byte("nochn : IP already is set "))
+					_, _ = w.Write([]byte(requestedIpAddress))
+					return
+				}
+			}
+		}
 
 		getLogger().Debugf("%v", []string{"URL", theUrl})
 
