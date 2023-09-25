@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"encoding/base64"
 	"fmt"
 	"github.com/sirupsen/logrus"
@@ -33,9 +34,17 @@ const defaultURLPattern = "https://{dduser}:{ddpass}@domains.google.com/nic/upda
 var validCredentials = make(map[string]UserInfo)
 
 func main() {
+	printCopyright(false)
+
 	cfg = getConfig("./")
 	if cfg.Debug {
 		getLogger().SetLevel(logrus.DebugLevel)
+	}
+	for i := 1; i < len(os.Args); i++ {
+		if strings.TrimSpace(strings.ToLower(os.Args[i])) == "-cc" {
+			printCopyright(true)
+			return
+		}
 	}
 
 	if err := setupCredentialsFromFile(); err != nil {
@@ -296,4 +305,36 @@ func fetchItHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
+}
+
+//go:embed copyright-banner.txt
+var embeddedCopyrightBanner string
+
+//go:embed copyrigth-full.txt
+var embeddedCopyright string
+
+//go:embed licence.md
+var embeddedLicence string
+
+func printCopyright(full bool) {
+	var c string
+	appName, _ := os.Executable()
+	parameters := map[string]interface{}{
+		"year":               time.Now().Format("2006"),
+		"author":             "Sadeq N. Yazdi",
+		"name":               "Sadeq N. Yazdi",
+		"email":              "codes@sadeq.uk",
+		"url":                "https://github.com/sadeq-n-yazd/go-ddns",
+		"license":            "GPLv3",
+		"applicationExeName": appName,
+	}
+
+	if full {
+		c = Interpolate(embeddedCopyright, parameters)
+	} else {
+		c = Interpolate(embeddedCopyrightBanner, parameters)
+	}
+
+	c = Interpolate(c, parameters)
+	getLogger().Info(c)
 }
