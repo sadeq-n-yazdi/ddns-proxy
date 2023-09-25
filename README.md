@@ -38,7 +38,7 @@ This functionality will be added in the future:
 
 # Author
 
-Sadeq N. Yazdi <pre>code[@]sadeq[dot]uk></pre>
+- Sadeq N. Yazdi <code>code[@]sadeq[dot]uk></code>
 
 # Copyright
 see [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html)
