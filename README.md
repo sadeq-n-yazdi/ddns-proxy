@@ -11,7 +11,7 @@ This service is Go pure code, so you need go to compile it
 3. run `GOOS=linux GOARCH=amd64 go build -v -ldflags "-w -s" -o MY-SERVICE-NAME.app` to compile it for Linux on amd64 platform, check [Go Documentation](https://go.dev/doc/install/source#environment) for more information to build for other platforms
 4. (optional) use UPX to reduce the size by running `upx MY-SERVICE-NAME.app`
 
-# How Use:
+# How Use
 
 Step-by-step guide to deploy the service:
 
@@ -24,7 +24,7 @@ Step-by-step guide to deploy the service:
 - Upload it to /etc/websites/YOUR_DOMAIN_NAME/config.ini
 - run the service (or set up a service using systemd or a daemon, see `sample-service.service` for a sample systemd service implementation)
 
-## TODO:
+## TODO
 
 This functionality will be added in the future:
 1. Support listen to secure port
@@ -36,9 +36,9 @@ This functionality will be added in the future:
     - ...
 5. write a man file
 
-# Author: 
+# Author
 
-Sadeq N. Yazdi
+Sadeq N. Yazdi <pre>code[@]sadeq[dot]uk></pre>
 
 # Copyright
 see [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html)
