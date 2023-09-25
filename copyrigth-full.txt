@@ -1,4 +1,6 @@
-The applicationExeName application work as a proxy to update Google Dynamic DNS from Iran Filternet
+The applicationExeName application work as a proxy to
+update Google Dynamic DNS from Iran FilterNet
+
     Copyright (C) 2023-{year}  {name}
 
     This program is free software: you can redistribute it and/or modify

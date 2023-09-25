@@ -30,7 +30,19 @@ type UserInfo struct {
 	ForceUpdate bool   `json:"force-update,omitempty,default:false"`
 }
 
-const defaultURLPattern = "https://{dduser}:{ddpass}@domains.google.com/nic/update?hostname={ddhost}&myip={ddip}"
+const (
+	defaultURLPattern = "https://{dduser}:{ddpass}@domains.google.com/nic/update?hostname={ddhost}&myip={ddip}"
+)
+
+var copyrightParameters = map[string]interface{}{
+	"year":               time.Now().Format("2006"),
+	"author":             "Sadeq N. Yazdi",
+	"name":               "Sadeq N. Yazdi",
+	"email":              "codes@sadeq.uk",
+	"url":                "https://github.com/sadeq-n-yazd/go-ddns",
+	"license":            "GPLv3",
+	"applicationExeName": "DDNS-Proxy",
+}
 
 // Define a map to store user credentials
 var validCredentials = make(map[string]UserInfo)
@@ -54,6 +66,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", fetchItHandlerFunc)
+	http.HandleFunc("/about", AboutHandlerFunc)
 
 	// Start the HTTP server
 	port := cfg.HostName + ":" + strconv.Itoa(cfg.Port)
@@ -229,6 +242,7 @@ func getRealIP(r *http.Request) string {
 	ip = strings.SplitN(ip, ":", 2)[0]
 	return ip
 }
+
 func fetchItHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	creds, valid := authorize(w, r)
 	if !valid {
@@ -337,22 +351,22 @@ var embeddedLicence string
 func printCopyright(full bool) {
 	var c string
 	appName, _ := os.Executable()
-	parameters := map[string]interface{}{
-		"year":               time.Now().Format("2006"),
-		"author":             "Sadeq N. Yazdi",
-		"name":               "Sadeq N. Yazdi",
-		"email":              "codes@sadeq.uk",
-		"url":                "https://github.com/sadeq-n-yazd/go-ddns",
-		"license":            "GPLv3",
-		"applicationExeName": appName,
-	}
+	copyrightParameters["applicationExeName"] = appName
 
 	if full {
-		c = Interpolate(embeddedCopyright, parameters)
+		c = Interpolate(embeddedCopyright, copyrightParameters)
 	} else {
-		c = Interpolate(embeddedCopyrightBanner, parameters)
+		c = Interpolate(embeddedCopyrightBanner, copyrightParameters)
 	}
 
-	c = Interpolate(c, parameters)
+	c = Interpolate(c, copyrightParameters)
 	getLogger().Info(c)
+}
+
+func AboutHandlerFunc(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
+	cc := Interpolate(embeddedCopyright, copyrightParameters)
+	_, _ = w.Write([]byte(cc))
+	_, _ = w.Write([]byte("\n\n" + strings.Repeat("-", 79) + "\n\n"))
+	_, _ = w.Write([]byte(embeddedLicence))
 }
