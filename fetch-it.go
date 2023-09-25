@@ -54,6 +54,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", fetchItHandlerFunc)
+	http.HandleFunc("/about", AboutHandlerFunc)
 
 	// Start the HTTP server
 	port := cfg.HostName + ":" + strconv.Itoa(cfg.Port)
@@ -229,6 +230,7 @@ func getRealIP(r *http.Request) string {
 	ip = strings.SplitN(ip, ":", 2)[0]
 	return ip
 }
+
 func fetchItHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	creds, valid := authorize(w, r)
 	if !valid {
@@ -355,4 +357,9 @@ func printCopyright(full bool) {
 
 	c = Interpolate(c, parameters)
 	getLogger().Info(c)
+}
+
+func AboutHandlerFunc(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
+	w.Write([]byte(embeddedLicence))
 }
