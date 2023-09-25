@@ -363,7 +363,7 @@ func printCopyright(full bool) {
 	getLogger().Info(c)
 }
 
-func AboutHandlerFunc(w http.ResponseWriter, r *http.Request) {
+func AboutHandlerFunc(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
 	cc := Interpolate(embeddedCopyright, copyrightParameters)
 	_, _ = w.Write([]byte(cc))
