@@ -351,6 +351,7 @@ var embeddedLicence string
 func printCopyright(full bool) {
 	var c string
 	appName, _ := os.Executable()
+	appName = filepath.Base(appName)
 	copyrightParameters["applicationExeName"] = appName
 
 	if full {
@@ -365,6 +366,7 @@ func printCopyright(full bool) {
 
 func AboutHandlerFunc(w http.ResponseWriter, _ *http.Request) {
 	appName, _ := os.Executable()
+	appName = filepath.Base(appName)
 	copyrightParameters["applicationExeName"] = appName
 
 	w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
