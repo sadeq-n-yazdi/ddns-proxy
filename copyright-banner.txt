@@ -1,5 +1,5 @@
-the {{applicationExeName}}  Copyright (C) 2023-{year}  {name} <{email}>
+the {applicationExeName}  Copyright (C) 2023-{year}  {name} <{email}>
 
-    This program comes with ABSOLUTELY NO WARRANTY; for details type `./{{applicationExeName}} -cc`.
+    This program comes with ABSOLUTELY NO WARRANTY; for details type `./{applicationExeName} -cc`.
     This is free software, and you are welcome to redistribute it
-    under certain conditions; type `./{{applicationExeName}} -cc` for details.
+    under certain conditions; type `./{applicationExeName} -cc` for details.

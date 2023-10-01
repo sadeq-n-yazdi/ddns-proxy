@@ -278,7 +278,7 @@ func fetchItHandlerFunc(w http.ResponseWriter, r *http.Request) {
 			ips, err := net.LookupIP(creds.Host)
 			if err == nil && len(ips) > 0 {
 				if ips[0].String() == requestedIpAddress {
-					getLogger().Info("IP %s already is set for %s", requestedIpAddress, creds.Host)
+					getLogger().Infof("IP %s already is set for %s", requestedIpAddress, creds.Host)
 					w.Header().Set("Content-Type", "text/plain")
 					_, _ = w.Write([]byte("nochn : IP already is set "))
 					_, _ = w.Write([]byte(requestedIpAddress))
@@ -364,6 +364,9 @@ func printCopyright(full bool) {
 }
 
 func AboutHandlerFunc(w http.ResponseWriter, _ *http.Request) {
+	appName, _ := os.Executable()
+	copyrightParameters["applicationExeName"] = appName
+
 	w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
 	cc := Interpolate(embeddedCopyright, copyrightParameters)
 	_, _ = w.Write([]byte(cc))
