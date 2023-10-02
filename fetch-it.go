@@ -353,7 +353,7 @@ func fetchItHandlerFunc(w http.ResponseWriter, r *http.Request) {
 //go:embed copyright-banner.txt
 var embeddedCopyrightBanner string
 
-//go:embed copyrigth-full.txt
+//go:embed copyright-full.txt
 var embeddedCopyright string
 
 //go:embed licence.md
