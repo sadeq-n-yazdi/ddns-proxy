@@ -79,6 +79,14 @@ func main() {
 			cfg.CertFile = path.Join(cfg.CAPath, cfg.CertFile)
 			cfg.KeyFile = path.Join(cfg.CAPath, cfg.KeyFile)
 		}
+		if cfg.redirectHttp > 0 {
+			go func() {
+				err := http.ListenAndServe(cfg.HostName+":"+strconv.Itoa(cfg.redirectHttp), http.HandlerFunc(redirectHandler))
+				if err != nil {
+					getLogger().Errorf("Can not redirect http to https on port %d: %v", cfg.redirectHttp, err)
+				}
+			}()
+		}
 		err = http.ListenAndServeTLS(port, cfg.CertFile, cfg.KeyFile, nil)
 	} else {
 		err = http.ListenAndServe(port, nil)
