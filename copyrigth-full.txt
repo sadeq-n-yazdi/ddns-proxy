@@ -1,4 +1,4 @@
-The applicationExeName application work as a proxy to
+The {applicationExeName} application work as a proxy to
 update Google Dynamic DNS from Iran FilterNet
 
     Copyright (C) 2023-{year}  {name}
