@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -39,7 +40,7 @@ var copyrightParameters = map[string]interface{}{
 	"author":             "Sadeq N. Yazdi",
 	"name":               "Sadeq N. Yazdi",
 	"email":              "codes@sadeq.uk",
-	"url":                "https://github.com/sadeq-n-yazd/go-ddns",
+	"url":                "https://github.com/sadeq-n-yazd/ddns-proxy",
 	"license":            "GPLv3",
 	"applicationExeName": "DDNS-Proxy",
 }
@@ -71,7 +72,17 @@ func main() {
 	// Start the HTTP server
 	port := cfg.HostName + ":" + strconv.Itoa(cfg.Port)
 	getLogger().Infof("Starting server on port %s...\n", port)
-	err := http.ListenAndServe(port, nil)
+	var err error
+	if cfg.SSL {
+		if cfg.CAPath != "" {
+			cfg.CAFile = path.Join(cfg.CAPath, cfg.CAFile)
+			cfg.CertFile = path.Join(cfg.CAPath, cfg.CertFile)
+			cfg.KeyFile = path.Join(cfg.CAPath, cfg.KeyFile)
+		}
+		err = http.ListenAndServeTLS(port, cfg.CertFile, cfg.KeyFile, nil)
+	} else {
+		err = http.ListenAndServe(port, nil)
+	}
 	if err != nil {
 		getLogger().Error("Error starting server:", err)
 	}
@@ -368,7 +379,6 @@ func AboutHandlerFunc(w http.ResponseWriter, _ *http.Request) {
 	appName, _ := os.Executable()
 	appName = filepath.Base(appName)
 	copyrightParameters["applicationExeName"] = appName
-
 	w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
 	cc := Interpolate(embeddedCopyright, copyrightParameters)
 	_, _ = w.Write([]byte(cc))
