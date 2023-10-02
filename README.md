@@ -2,6 +2,10 @@
 
 Using this, people can update Dynamic DNS names (Now, only Google DNS service) that are censored in Iran.
 
+## Status
+
+[![Go Pipeline](https://github.com/sadeq-n-yazdi/ddns-proxy/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/sadeq-n-yazdi/ddns-proxy/actions/workflows/go.yml)
+
 **Note:** 
 To use this service, As well as a VPS, you need to have a domain with Google Domain service 
 You have to set the DNS servers to use Google DNS service (default DNS server settings).
