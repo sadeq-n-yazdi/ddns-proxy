@@ -34,4 +34,4 @@ jobs:
         ld_flags: -w -s -extldflags "-static"
         build_tags: -tags netgo
         project_path: ./
-        extra_files: LICENSE README.md
+        extra_files: licence.md README.md
