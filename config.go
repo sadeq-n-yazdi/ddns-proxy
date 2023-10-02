@@ -10,14 +10,15 @@ import (
 )
 
 type ServerConfig struct {
-	Port     int
-	HostName string
-	CertFile string
-	KeyFile  string
-	CAFile   string
-	CAPath   string
-	SSL      bool
-	Debug    bool
+	Port         int
+	HostName     string
+	CertFile     string
+	KeyFile      string
+	CAFile       string
+	CAPath       string
+	SSL          bool
+	Debug        bool
+	redirectHttp int
 }
 
 var cfg *ServerConfig
@@ -33,12 +34,13 @@ func getConfig(path string) *ServerConfig {
 	// Define default config values
 	defaultConfig :=
 		ServerConfig{
-			Port:     443,
-			HostName: "localhost",
-			CertFile: "server.crt",
-			KeyFile:  "server.key",
-			SSL:      false,
-			Debug:    true,
+			Port:         443,
+			HostName:     "localhost",
+			CertFile:     "server.crt",
+			KeyFile:      "server.key",
+			SSL:          false,
+			Debug:        true,
+			redirectHttp: 0,
 		}
 	if fileIsReadable(&path) {
 		configFileName = path
@@ -75,6 +77,9 @@ func getConfig(path string) *ServerConfig {
 	}
 	if ssl, err := settings.Section(sectionName).Key("secure").Bool(); err == nil {
 		defaultConfig.SSL = ssl
+	}
+	if httpRedirectPort, err := settings.Section(sectionName).Key("http-port").Int(); (err == nil) && (httpRedirectPort > 0) {
+		defaultConfig.redirectHttp = httpRedirectPort
 	}
 
 	return &defaultConfig
