@@ -49,9 +49,4 @@ func GetParamsAsMap(r *http.Request) (result *map[string]interface{}, err error)
 
 	return &resMap, nil
 
-	//params := make(map[string]interface{})
-	//for key, value := range r.URL.Query() {
-	//    params[key] = value[0]
-	//}
-	//return params
 }
