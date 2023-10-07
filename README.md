@@ -53,14 +53,13 @@ Step-by-step guide to deploy the service:
 ## TODO
 
 This functionality will be added in the future:
-1. [x] Do not try to update if the IP is already correct.
+1. [x] Don't try to update if the IP is already correct.
 2. [x] Support listen to secure port
 3. [ ] Add test codes 
 4. [ ] Support generate and use certificate using Let's Encrypt services
 5. [ ] add support for:
     - [ ] no-ip.com
     - [ ] dyndns.org
-    - ...
 6. [ ] write a man file
 7. [ ] add support `force=yes` parameter in the request url
 8. [ ] render `/about` page from MarkDown to HTML
