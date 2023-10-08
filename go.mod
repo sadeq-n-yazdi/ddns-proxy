@@ -1,4 +1,4 @@
-module fetch-it
+module ddns-proxy
 
 go 1.21
 
@@ -13,5 +13,5 @@ require (
 	github.com/stretchr/testify v1.8.4 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
-	golang.org/x/sys v0.12.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
 )
